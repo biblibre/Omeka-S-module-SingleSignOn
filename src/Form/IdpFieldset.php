@@ -116,6 +116,20 @@ librarian = author',
                 ],
             ])
             ->add([
+                'name' => 'idp_groups_map',
+                'type' => OmekaElement\ArrayTextarea::class,
+                'options' => [
+                    'label' => 'Groups map between IdP and Omeka', // @translate
+                    'info' => 'List of IdP and Omeka groups separated by "=".', // @translate
+                    'as_key_value' => true,
+                ],
+                'attributes' => [
+                    'id' => 'idp_groups_map',
+                    'rows' => 5,
+                    'placeholder' => "student= GROUP_COMMENT_1\nemployee = GROUP_COMMENT_2",
+                ],
+            ])
+            ->add([
                 'name' => 'idp_user_settings',
                 'type' => OmekaElement\ArrayTextarea::class,
                 'options' => [
