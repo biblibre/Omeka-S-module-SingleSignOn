@@ -32,15 +32,6 @@ class SsoController extends AbstractActionController
      */
     protected $entityManager;
 
-    /**
-     * @var array
-     */
-    protected $attributesMapCanonical = [
-        'urn:oid:0.9.2342.19200300.100.1.3' => 'email',
-        'urn:oid:2.16.840.1.113730.3.1.241' => 'name',
-        'https://samltest.id/attributes/role' => 'role',
-    ];
-
     public function __construct(
         Acl $acl,
         AuthenticationService $authenticationService,
@@ -264,7 +255,7 @@ class SsoController extends AbstractActionController
         // The map is already checked.
         $attributesMap = $idp['idp_attributes_map'];
         $email = $samlAttributesFriendly[array_search('email', $attributesMap)][0]
-            ?? $samlAttributesCanonical[array_search('email', $this->attributesMapCanonical)][0]
+            ?? $samlAttributesCanonical[array_search('email', $attributesMap)][0]
             ?? null;
         if (!$email && strpos($nameId, '@')) {
             $email = $nameId;
@@ -283,14 +274,14 @@ class SsoController extends AbstractActionController
         }
 
         $name = $samlAttributesFriendly[array_search('name', $attributesMap)][0]
-            ?? $samlAttributesCanonical[array_search('name', $this->attributesMapCanonical)][0]
+            ?? $samlAttributesCanonical[array_search('name', $attributesMap)][0]
             ?? null;
 
         // The map is already checked.
         $rolesMap = $idp['idp_roles_map'];
         $roles = $this->acl->getRoles();
         $idpRole = $samlAttributesFriendly[array_search('role', $attributesMap)][0]
-            ?? $samlAttributesCanonical[array_search('role', $this->attributesMapCanonical)][0]
+            ?? $samlAttributesCanonical[array_search('role', $attributesMap)][0]
             ?? null;
         $role = $rolesMap ? $rolesMap[$idpRole] ?? null : $idpRole;
         if (!in_array($role, $roles)) {
