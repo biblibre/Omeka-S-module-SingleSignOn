@@ -376,11 +376,14 @@ class SsoController extends AbstractActionController
 
         $groupsMap = $idp['idp_groups_map'];
         $groupRepository = $this->entityManager->getRepository('Group\Entity\Group');
-        if (isset($groupsMap) && $groupRepository) {
+        $type = $samlAttributesFriendly[array_search('type', $attributesMap)][0]
+            ?? $samlAttributesCanonical[array_search('type', $attributesMap)][0]
+            ?? null;
+        if (!empty($groupsMap) && $groupRepository) {
             if (isset($groupsMap['*'])) {
                 $groupsToMap[] = $groupsMap['*'];
             }
-            $idpGroup = $groupsMap[$nameId];
+            $idpGroup = $groupsMap[$type];
             $currentGroupsComments = $this->getCurrentGroups($user);
             if (isset($idpGroup) && !in_array($idpGroup, $groupsToMap)) {
                 $groupsToMap[] = $idpGroup;
@@ -707,6 +710,18 @@ class SsoController extends AbstractActionController
 
         $idp = $this->idpData($idpName, true);
 
+        $x509certMulti = null;
+        if ($idp['idp_x509_sign_certificate']) {
+            $x509certMulti = [
+                'signing' => [
+                    0 => $idp['idp_x509_sign_certificate'],
+                ],
+                'encryption' => [
+                    0 => $idp['idp_x509_certificate'],
+                ],
+            ];
+        }
+
         /*
          * @see vendor/onelogin/php-saml/settings_example.php
          * @see vendor/onelogin/php-saml/advanced_settings_example.php
@@ -847,14 +862,7 @@ class SsoController extends AbstractActionController
                  * (when used, 'x509cert' and 'certFingerprint' values are
                  * ignored).
                  */
-                // 'x509certMulti' => [
-                //      'signing' => [
-                //          0 => '<cert1-string>',
-                //      ],
-                //      'encryption' => [
-                //          0 => '<cert2-string>',
-                //      ],
-                // ],
+                 'x509certMulti' => $x509certMulti,
             ],
 
             // Advanced settings.
@@ -905,11 +913,11 @@ class SsoController extends AbstractActionController
 
                 // Indicates a requirement for the <saml:Assertion> elements received by
                 // this SP to be encrypted.
-                'wantAssertionsEncrypted' => false,
+                'wantAssertionsEncrypted' => true,
 
                 // Indicates a requirement for the <saml:Assertion> elements received by
                 // this SP to be signed.        [The Metadata of the SP will offer this info]
-                'wantAssertionsSigned' => false,
+                'wantAssertionsSigned' => true,
 
                 // Indicates a requirement for the NameID element on the SAMLResponse received
                 // by this SP to be present.

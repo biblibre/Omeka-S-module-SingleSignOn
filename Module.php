@@ -183,6 +183,14 @@ class Module extends AbstractModule
             if ($result) {
                 $idp['idp_x509_certificate'] = $result;
             }
+
+            if ($idp['idp_x509_sign_certificate']) {
+                $result = $this->checkX509Certificate($idp['idp_x509_sign_certificate'] ?? null, $idpName);
+                if ($result) {
+                    $idp['idp_x509_sign_certificate'] = $result;
+                }
+            }
+
             $cleanIdps[$idpName] = $idp;
         }
 

@@ -89,6 +89,11 @@ class IdpMetadata extends AbstractPlugin
             // Prefer the certificate used for encryption, not signing.
             $x509Certificate = (string) ($registerXpathNamespaces($xml)->xpath('//samlmetadata:IDPSSODescriptor/samlmetadata:KeyDescriptor[@use = "encryption"]/ds:KeyInfo/ds:X509Data/ds:X509Certificate[1]')[0] ?? '')
                 ?: (string) ($registerXpathNamespaces($xml)->xpath('//samlmetadata:IDPSSODescriptor/samlmetadata:KeyDescriptor/ds:KeyInfo/ds:X509Data/ds:X509Certificate[1]')[0] ?? '');
+
+            $idp_x509_sign_certificate = (string) $registerXpathNamespaces($xml)->xpath('//samlmetadata:IDPSSODescriptor/samlmetadata:KeyDescriptor[@use = "signing"]/ds:KeyInfo/ds:X509Data/ds:X509Certificate[1]')[0] ?? '';
+            if (!$idp_x509_sign_certificate) {
+                $idp_x509_sign_certificate = (string) $registerXpathNamespaces($xml)->xpath('//samlmetadata:EntityDescriptor/ds:Signature/ds:KeyInfo/ds:X509Data/ds:X509Certificate[1]')[0] ?? '';
+            }
         } else {
             $entityName = (string) ($xml->xpath('//Organization/OrganizationName[1]')[0] ?? '')
                 ?: (string) ($xml->xpath('//IDPSSODescriptor/Extensions/UIInfo/DisplayName[1]')[0] ?? '');
@@ -100,7 +105,14 @@ class IdpMetadata extends AbstractPlugin
             // Prefer the certificate used for encryption, not signing.
             $x509Certificate = (string) ($xml->xpath('//IDPSSODescriptor/KeyDescriptor[@use = "encryption"]/KeyInfo/X509Data/X509Certificate[1]')[0] ?? '')
                 ?: (string) ($xml->xpath('//IDPSSODescriptor/KeyDescriptor/KeyInfo/X509Data/X509Certificate[1]')[0] ?? '');
+
+            $idp_x509_sign_certificate = (string) $registerXpathNamespaces($xml)->xpath('//IDPSSODescriptor/KeyDescriptor[@use = "signing"]/KeyInfo/X509Data/X509Certificate[1]')[0] ?? '';
+            if (!$idp_x509_sign_certificate) {
+                $idp_x509_sign_certificate = (string) $registerXpathNamespaces($xml)->xpath('//EntityDescriptor/Signature/KeyInfo/X509Data/X509Certificate[1]')[0] ?? '';
+            }
         }
+
+        $idp_x509_sign_certificate = trim(str_replace(["\t", ' '], '', $idp_x509_sign_certificate));
 
         return [
             'idp_metadata_url' => $idpUrl,
@@ -110,6 +122,7 @@ class IdpMetadata extends AbstractPlugin
             'idp_slo_url' => trim($sloUrl),
             // The xml may add tabulations and spaces, to be removed.
             'idp_x509_certificate' => trim(str_replace(["\t", ' '], '', $x509Certificate)),
+            'idp_x509_sign_certificate' => $idp_x509_sign_certificate,
             'idp_date' => (new \DateTime('now'))->format(\DateTime::ISO8601),
         ];
     }
