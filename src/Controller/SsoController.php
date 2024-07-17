@@ -5,7 +5,6 @@ namespace SingleSignOn\Controller;
 use Doctrine\ORM\EntityManager;
 use Laminas\Authentication\AuthenticationService;
 use Laminas\Mvc\Controller\AbstractActionController;
-use Laminas\Mvc\Exception;
 use Laminas\Session\Container;
 use Omeka\Entity\User;
 use Omeka\Mvc\Exception\RuntimeException;
@@ -14,6 +13,7 @@ use Omeka\Stdlib\Message;
 use OneLogin\Saml2\Auth as SamlAuth;
 use OneLogin\Saml2\Error as SamlError;
 use OneLogin\Saml2\Settings as SamlSettings;
+use Group\Entity\GroupUser;
 
 class SsoController extends AbstractActionController
 {
@@ -264,7 +264,8 @@ class SsoController extends AbstractActionController
         if (!$email) {
             $message = new Message('No email provided to log in or register.'); // @translate
             $this->messenger()->addError($message);
-            $message = new Message('No email provided or mapped. Available canonical attributes for this IdP: %1$s. Available friendly attributes for this IdP: %2$s.', // @translate
+            $message = new Message(
+                'No email provided or mapped. Available canonical attributes for this IdP: %1$s. Available friendly attributes for this IdP: %2$s.', // @translate
                 implode(', ', array_keys($samlAttributesCanonical)),
                 implode(', ', array_keys($samlAttributesFriendly))
             );
@@ -289,8 +290,8 @@ class SsoController extends AbstractActionController
         }
 
         $user = $this->entityManager
-            ->getRepository(\Omeka\Entity\User::class)
-            ->findOneBy(['email' => $email]);
+        ->getRepository(\Omeka\Entity\User::class)
+        ->findOneBy(['email' => $email]);
 
         $activeSsoServices = $this->settings()->get('singlesignon_services', ['sso']);
 
@@ -302,7 +303,8 @@ class SsoController extends AbstractActionController
             }
 
             if (!$name) {
-                $message = new Message('No name provided or mapped. Available canonical attributes for this IdP: "%1$s". Available friendly attributes for this IdP: "%2$s".', // @translate
+                $message = new Message(
+                    'No name provided or mapped. Available canonical attributes for this IdP: "%1$s". Available friendly attributes for this IdP: "%2$s".', // @translate
                     implode('", "', array_keys($samlAttributesCanonical)),
                     implode('", "', array_keys($samlAttributesFriendly))
                 );
@@ -370,6 +372,25 @@ class SsoController extends AbstractActionController
                 $this->entityManager->persist($user);
                 $this->entityManager->flush();
             }
+        }
+
+        $groupsMap = $idp['idp_groups_map'];
+        $groupRepository = $this->entityManager->getRepository('Group\Entity\Group');
+        if (isset($groupsMap) && $groupRepository) {
+            if (isset($groupsMap['*'])) {
+                $groupsToMap[] = $groupsMap['*'];
+            }
+            $idpGroup = $groupsMap[$nameId];
+            $currentGroupsComments = $this->getCurrentGroups($user);
+            if (isset($idpGroup) && !in_array($idpGroup, $groupsToMap)) {
+                $groupsToMap[] = $idpGroup;
+            }
+            $groupsToUnlink = array_diff(array_values($currentGroupsComments), $groupsToMap);
+            if (!empty($groupsToUnlink)) {
+                $this->removeGroupsFromUser($groupsToUnlink, $user);
+            }
+            $this->addGroupsToUser($groupsToMap, $user);
+            $this->entityManager->flush();
         }
 
         $sessionManager = Container::getDefaultManager();
@@ -686,7 +707,7 @@ class SsoController extends AbstractActionController
 
         $idp = $this->idpData($idpName, true);
 
-        /**
+        /*
          * @see vendor/onelogin/php-saml/settings_example.php
          * @see vendor/onelogin/php-saml/advanced_settings_example.php
          */
@@ -844,13 +865,13 @@ class SsoController extends AbstractActionController
             // method it will have priority over the compression settings.
             'compress' => [
                 'requests' => true,
-                'responses' => true
+                'responses' => true,
             ],
 
             // Security settings
             'security' => [
 
-                /** signatures and encryptions offered */
+                /* signatures and encryptions offered */
 
                 // Indicates that the nameID of the <samlp:logoutRequest> sent by this SP
                 // will be encrypted.
@@ -876,7 +897,7 @@ class SsoController extends AbstractActionController
                  */
                 'signMetadata' => false,
 
-                /** signatures and encryptions required **/
+                /* signatures and encryptions required **/
 
                 // Indicates a requirement for the <samlp:Response>, <samlp:LogoutRequest> and
                 // <samlp:LogoutResponse> elements received by this SP to be signed.
@@ -973,5 +994,51 @@ class SsoController extends AbstractActionController
             */
 
         ];
+    }
+
+    private function getCurrentGroups($user)
+    {
+        $queryBuilder = $this->entityManager->createQueryBuilder();
+        $query = $queryBuilder
+                        ->select('g.comment')
+                        ->from('Group\Entity\GroupUser', 'e')
+                        ->join('e.group', 'g')
+                        ->andWhere('e.user = :userId')
+                        ->getQuery();
+        $query->setParameter('userId', $user->getId());
+        $currentGroups = $query->getResult();
+
+        return array_column($currentGroups, 'comment');
+    }
+
+    private function removeGroupsFromUser(array $groupsComment, $user)
+    {
+        $groupRepository = $this->entityManager->getRepository('Group\Entity\Group');
+        $groupUserRepository = $this->entityManager->getRepository('Group\Entity\GroupUser');
+
+        foreach ($groupsComment as $groupComment) {
+            $targetGroup = $groupRepository->findOneBy(['comment' => $groupComment]);
+            $groupUserToRemove = $groupUserRepository->findOneBy(['group' => $targetGroup->getId(), 'user' => $user->getId()]);
+            if ($groupUserToRemove) {
+                $this->entityManager->remove($groupUserToRemove);
+            }
+        }
+    }
+
+    private function addGroupsToUser(array $groupsComment, $user)
+    {
+        $groupsComment = array_unique($groupsComment);
+        $groupRepository = $this->entityManager->getRepository('Group\Entity\Group');
+        $groupUserRepository = $this->entityManager->getRepository('Group\Entity\GroupUser');
+
+        foreach ($groupsComment as $groupComment) {
+            $targetGroup = $groupRepository->findOneBy(['comment' => $groupComment]);
+            $groupUser = $groupUserRepository->findOneBy(['group' => $targetGroup->getId(), 'user' => $user->getId()]);
+
+            if (!$groupUser) {
+                $groupUser = new GroupUser($targetGroup, $user);
+                $this->entityManager->persist($groupUser);
+            }
+        }
     }
 }
