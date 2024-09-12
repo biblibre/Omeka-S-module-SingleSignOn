@@ -138,7 +138,7 @@ librarian = author',
                 'attributes' => [
                     'id' => 'idp_groups_map',
                     'rows' => 5,
-                    'placeholder' => "student= GROUP_COMMENT_1\nemployee = GROUP_COMMENT_2",
+                    'placeholder' => "*= GROUP_COMMENT_1\nstudent= GROUP_COMMENT_2\nemployee = GROUP_COMMENT_3",
                 ],
             ])
             ->add([

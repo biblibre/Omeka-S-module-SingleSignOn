@@ -111,6 +111,11 @@ return [
                         // '' => 'guest',
                         // '' => 'annotator',
                     ],
+                    'idp_groups_map' => [
+                        // '*' => 'GROUP_COMMENT_1',
+                        // 'student' => 'GROUP_COMMENT_2',
+                        // 'employee' => 'GROUP_COMMENT_3',
+                    ],
                     // Keys to store as user setting when the user is created.
                     // Warning: these values are not updated automatically.
                     'idp_user_settings' => [
