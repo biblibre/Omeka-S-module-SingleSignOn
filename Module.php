@@ -172,6 +172,7 @@ class Module extends AbstractModule
                 $idpMeta['idp_attributes_map'] = $idp['idp_attributes_map'];
                 $idpMeta['idp_roles_map'] = $idp['idp_roles_map'];
                 $idpMeta['idp_groups_map'] = $idp['idp_groups_map'];
+                $idpMeta['idp_groups_ignored'] = $idp['idp_groups_ignored'];
                 $idpMeta['idp_user_settings'] = $idp['idp_user_settings'];
                 $idp = $idpMeta;
                 $entityId = $idp['idp_entity_id'];

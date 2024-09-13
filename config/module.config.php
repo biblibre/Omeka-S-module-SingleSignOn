@@ -89,7 +89,7 @@ return [
                     'idp_x509_certificate' => '',
                     'idp_attributes_map' => [
                         'mail' => 'email',
-                        'displayName' =>'name',
+                        'displayName' => 'name',
                         /*
                         'role' => 'role',
                         'memberOf' => 'role',
@@ -115,6 +115,9 @@ return [
                         // '*' => 'GROUP_COMMENT_1',
                         // 'student' => 'GROUP_COMMENT_2',
                         // 'employee' => 'GROUP_COMMENT_3',
+                    ],
+                    'idp_groups_ignored' => [
+                        // 'GROUP_COMMENT_4',
                     ],
                     // Keys to store as user setting when the user is created.
                     // Warning: these values are not updated automatically.

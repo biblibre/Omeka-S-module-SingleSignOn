@@ -375,6 +375,7 @@ class SsoController extends AbstractActionController
         }
 
         $groupsMap = $idp['idp_groups_map'];
+        $groupsIgnored = $idp['idp_groups_ignored'];
         $groupRepository = $this->entityManager->getRepository('Group\Entity\Group');
         $type = $samlAttributesFriendly[array_search('type', $attributesMap)][0]
             ?? $samlAttributesCanonical[array_search('type', $attributesMap)][0]
@@ -389,8 +390,10 @@ class SsoController extends AbstractActionController
                 $groupsToMap[] = $idpGroup;
             }
             $groupsToUnlink = array_diff(array_values($currentGroupsComments), $groupsToMap);
-            if (!empty($groupsToUnlink)) {
-                $this->removeGroupsFromUser($groupsToUnlink, $user);
+            $commonElements = array_intersect($groupsToUnlink, $groupsIgnored);
+            $finalGroupsToUnlink = array_diff($groupsToUnlink, $commonElements);
+            if (!empty($finalGroupsToUnlink)) {
+                $this->removeGroupsFromUser($finalGroupsToUnlink, $user);
             }
             $this->addGroupsToUser($groupsToMap, $user);
             $this->entityManager->flush();

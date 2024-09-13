@@ -142,6 +142,20 @@ librarian = author',
                 ],
             ])
             ->add([
+                'name' => 'idp_groups_ignored',
+                'type' => OmekaElement\ArrayTextarea::class,
+                'options' => [
+                    'label' => 'Groups ignored during connection', // @translate
+                    'info' => 'List of Omeka groups that will be ignored during groups update.', // @translate
+                    'as_key_value' => false,
+                ],
+                'attributes' => [
+                    'id' => 'idp_groups_ignored',
+                    'rows' => 5,
+                    'placeholder' => "GROUP_COMMENT_4\n",
+                ],
+            ])
+            ->add([
                 'name' => 'idp_user_settings',
                 'type' => OmekaElement\ArrayTextarea::class,
                 'options' => [
